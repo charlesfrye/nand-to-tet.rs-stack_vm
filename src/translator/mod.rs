@@ -3,7 +3,7 @@ use crate::parser::Parser;
 
 pub fn translate(inputs: Vec<(String, String)>) -> String {
     let mut result = String::new();
-    let codewriter = CodeWriter::new();
+    let mut codewriter = CodeWriter::new();
 
     for (_filename, content) in inputs {
         let parser = Parser::new(&content);
