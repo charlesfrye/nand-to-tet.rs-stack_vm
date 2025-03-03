@@ -45,6 +45,13 @@ fn test_flow_basic() {
     ));
 }
 
+#[test]
+fn test_flow_fibonacci() {
+    assert!(run_cpu_emulator_test(
+        &(get_base_test_dir() + "/ProgramFlow/FibonacciSeries")
+    ));
+}
+
 fn run_cpu_emulator_test(test_dir: &str) -> bool {
     let dir_path = Path::new(test_dir);
 
