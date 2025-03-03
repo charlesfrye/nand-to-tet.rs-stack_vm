@@ -8,6 +8,7 @@ pub enum MemorySegment {
     This,
     That,
     Temp,
+    Pointer,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -35,6 +36,7 @@ impl fmt::Display for MemorySegment {
             MemorySegment::This => write!(f, "this"),
             MemorySegment::That => write!(f, "that"),
             MemorySegment::Temp => write!(f, "temp"),
+            MemorySegment::Pointer => write!(f, "pointer"),
         }
     }
 }

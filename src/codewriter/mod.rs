@@ -80,7 +80,7 @@ impl CodeWriter {
             )
         } else {
             let segment_well_known_addr = self._get_segment_well_known_addr(segment);
-            let is_pointer = self._is_pointer_segment(segment);
+            let is_pointer = self._is_pointed_segment(segment);
 
             let get_base_address = if is_pointer {
                 // chase pointer
@@ -99,7 +99,7 @@ impl CodeWriter {
 
     pub fn write_pop(&self, segment: &MemorySegment, argument: u16) -> String {
         let segment_well_known_addr = self._get_segment_well_known_addr(segment);
-        let is_pointer = self._is_pointer_segment(segment);
+        let is_pointer = self._is_pointed_segment(segment);
 
         let get_base_address = if is_pointer {
             // chase pointer
@@ -155,12 +155,13 @@ impl CodeWriter {
             MemorySegment::This => "@THIS",
             MemorySegment::That => "@THAT",
             MemorySegment::Temp => "@5",
+            MemorySegment::Pointer => "@3",
             _ => panic!("Invalid segment for address calculation"),
         }
         .to_string()
     }
 
-    fn _is_pointer_segment(&self, segment: &MemorySegment) -> bool {
+    fn _is_pointed_segment(&self, segment: &MemorySegment) -> bool {
         matches!(
             segment,
             MemorySegment::Local

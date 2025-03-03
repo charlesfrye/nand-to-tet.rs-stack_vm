@@ -24,6 +24,13 @@ fn test_basic_test() {
     ));
 }
 
+#[test]
+fn test_pointer_test() {
+    assert!(run_cpu_emulator_test(
+        &(get_base_test_dir() + "/MemoryAccess/PointerTest")
+    ));
+}
+
 fn run_cpu_emulator_test(test_dir: &str) -> bool {
     let dir_path = Path::new(test_dir);
 
