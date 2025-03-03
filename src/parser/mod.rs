@@ -86,16 +86,59 @@ fn _parse(tokens: Vec<&str>) -> Result<Command, String> {
                     tokens.join(" ")
                 ));
             }
-
+            let max_addr = (2 << 14) - 1;
             match tokens[1] {
-                "constant" => match tokens[2].parse() {
-                    Ok(value) => Ok(Command::Push(MemorySegment::Constant, value)),
-                    Err(_) => Err(format!("couldn't parse address: {}", tokens[2])),
-                },
-                _ => Err(format!("couldn't parse memory access:{}", tokens.join(" "))),
+                "constant" => parse_push_command(MemorySegment::Constant, tokens[2], max_addr),
+                "local" => parse_push_command(MemorySegment::Local, tokens[2], max_addr),
+                "argument" => parse_push_command(MemorySegment::Argument, tokens[2], max_addr),
+                "this" => parse_push_command(MemorySegment::This, tokens[2], max_addr),
+                "that" => parse_push_command(MemorySegment::That, tokens[2], max_addr),
+                "temp" => parse_push_command(MemorySegment::Temp, tokens[2], 8),
+                _ => Err(format!("unknown segment for push: {}", tokens[1])),
+            }
+        }
+        "pop" => {
+            if tokens.len() < 3 {
+                return Err(format!(
+                    "Not enough arguments for pop: {}",
+                    tokens.join(" ")
+                ));
+            }
+            let max_addr = (2 << 14) - 1;
+            match tokens[1] {
+                "local" => parse_pop_command(MemorySegment::Local, tokens[2], max_addr),
+                "argument" => parse_pop_command(MemorySegment::Argument, tokens[2], max_addr),
+                "this" => parse_pop_command(MemorySegment::This, tokens[2], max_addr),
+                "that" => parse_pop_command(MemorySegment::That, tokens[2], max_addr),
+                "temp" => parse_pop_command(MemorySegment::Temp, tokens[2], 8),
+                _ => Err(format!("unknown segment for pop: {}", tokens[1])),
             }
         }
         _ => Err(format!("couldn't parse {}", tokens.join(" "))),
+    }
+}
+
+fn parse_push_command(
+    segment: MemorySegment,
+    token: &str,
+    max_value: u16,
+) -> Result<Command, String> {
+    match token.parse() {
+        Ok(value) if value <= max_value => Ok(Command::Push(segment, value)),
+        Ok(_) => Err(format!("value exceeds maximum allowed: {}", max_value)),
+        Err(_) => Err(format!("couldn't parse address: {}", token)),
+    }
+}
+
+fn parse_pop_command(
+    segment: MemorySegment,
+    token: &str,
+    max_value: u16,
+) -> Result<Command, String> {
+    match token.parse() {
+        Ok(value) if value <= max_value => Ok(Command::Pop(segment, value)),
+        Ok(_) => Err(format!("value exceeds maximum allowed: {}", max_value)),
+        Err(_) => Err(format!("couldn't parse address: {}", token)),
     }
 }
 
@@ -247,6 +290,56 @@ mod parse_tests {
         assert_eq!(
             parse("push constant 9999"),
             Ok(Command::Push(MemorySegment::Constant, 9999))
+        );
+    }
+
+    // Test general push command
+    #[test]
+    fn test_parse_push_general() {
+        assert_eq!(
+            parse("push local 4"),
+            Ok(Command::Push(MemorySegment::Local, 4))
+        );
+        assert_eq!(
+            parse("push argument 0"),
+            Ok(Command::Push(MemorySegment::Argument, 0))
+        );
+        assert_eq!(
+            parse("push this 9999"),
+            Ok(Command::Push(MemorySegment::This, 9999))
+        );
+        assert_eq!(
+            parse("push that 37"),
+            Ok(Command::Push(MemorySegment::That, 37))
+        );
+        assert_eq!(
+            parse("push temp 5"),
+            Ok(Command::Push(MemorySegment::Temp, 5))
+        );
+    }
+
+    // Test pop commands
+    #[test]
+    fn test_parse_pop() {
+        assert_eq!(
+            parse("pop local 4"),
+            Ok(Command::Pop(MemorySegment::Local, 4))
+        );
+        assert_eq!(
+            parse("pop argument 0"),
+            Ok(Command::Pop(MemorySegment::Argument, 0))
+        );
+        assert_eq!(
+            parse("pop this 9999"),
+            Ok(Command::Pop(MemorySegment::This, 9999))
+        );
+        assert_eq!(
+            parse("pop that 37"),
+            Ok(Command::Pop(MemorySegment::That, 37))
+        );
+        assert_eq!(
+            parse("pop temp 5"),
+            Ok(Command::Pop(MemorySegment::Temp, 5))
         );
     }
 

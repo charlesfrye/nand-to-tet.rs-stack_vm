@@ -17,6 +17,13 @@ fn test_stack_test() {
     ));
 }
 
+#[test]
+fn test_basic_test() {
+    assert!(run_cpu_emulator_test(
+        &(get_base_test_dir() + "/MemoryAccess/BasicTest")
+    ));
+}
+
 fn run_cpu_emulator_test(test_dir: &str) -> bool {
     let dir_path = Path::new(test_dir);
 
@@ -51,17 +58,27 @@ fn run_cpu_emulator_test(test_dir: &str) -> bool {
     if !output.status.success() {
         println!("CPUEmulator execution failed");
         println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-        return false;
     }
 
     let out_file = PathBuf::from(test_dir).join(format!("{}.out", test_name));
     let cmp_file = PathBuf::from(test_dir).join(format!("{}.cmp", test_name));
 
     if out_file.exists() && cmp_file.exists() {
-        let out_content = fs::read_to_string(out_file).expect("Failed to read output file");
-        let cmp_content = fs::read_to_string(cmp_file).expect("Failed to read comparison file");
+        let out_content = fs::read_to_string(out_file)
+            .expect("Failed to read output file")
+            .trim()
+            .to_string();
+        let cmp_content = fs::read_to_string(cmp_file)
+            .expect("Failed to read comparison file")
+            .replace("\r\n", "\n")
+            .trim()
+            .to_string();
 
-        return out_content.trim() == cmp_content.trim().replace("\r\n", "\n");
+        if out_content != cmp_content {
+            println!("TARGET:\n{}", cmp_content);
+            println!("GOT:\n{}", out_content);
+            return false;
+        }
     }
 
     true
@@ -131,7 +148,7 @@ fn get_base_test_dir() -> String {
 
         let test_data_dir = project_dir.join("tests").join("test_data");
 
-        dbg!(test_data_dir).to_string_lossy().to_string()
+        test_data_dir.to_string_lossy().to_string()
     }
 
     std::env::var("STACK_VM_TEST_DIR").unwrap_or(default_dir())

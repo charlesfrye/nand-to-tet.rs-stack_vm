@@ -11,7 +11,9 @@ impl CodeWriter {
     }
 
     pub fn write(&mut self, command: &Command) -> String {
-        match command {
+        let debug_comment = format!("// {}", command);
+
+        let assembly = match command {
             Command::Add => self.write_add(),
             Command::Sub => self.write_sub(),
             Command::Neg => self.write_neg(),
@@ -22,8 +24,11 @@ impl CodeWriter {
             Command::Or => self.write_or(),
             Command::Not => self.write_not(),
             Command::Push(segment, address) => self.write_push(segment, *address),
+            Command::Pop(segment, address) => self.write_pop(segment, *address),
             _ => "// Not implemented yet".to_string(),
-        }
+        };
+
+        format!("{}\n{}", debug_comment, assembly)
     }
 
     pub fn write_add(&self) -> String {
@@ -62,19 +67,59 @@ impl CodeWriter {
         format!("{}\n{}", self._unary_op().join("\n"), "M=!D")
     }
 
-    pub fn write_push(&self, segment: &MemorySegment, address: i32) -> String {
-        match segment {
-            MemorySegment::Constant => [
-                &format!("@{}", address), // load the constant into A
-                "D=A",                    // move it to D
-                "@SP",                    // point to the stack pointer
-                "A=M",                    // load the stack pointer into A
-                "M=D",                    // write the constant onto the stack
-                "@SP",                    // increment the
-                "M=M+1",                  // stack pointer
+    pub fn write_push(&self, segment: &MemorySegment, argument: u16) -> String {
+        if *segment == MemorySegment::Constant {
+            format!(
+                "{}\n{}",
+                [
+                    &format!("@{}", argument), // load the constant into A
+                    "D=A",                     // move it to D
+                ]
+                .join("\n"),
+                self._push().join("\n"), // push D
+            )
+        } else {
+            let segment_well_known_addr = self._get_segment_well_known_addr(segment);
+            let is_pointer = self._is_pointer_segment(segment);
+
+            let get_base_address = if is_pointer {
+                // chase pointer
+                format!("{}\nA=M\nA=D+A", segment_well_known_addr)
+            } else {
+                format!("{}\nA=D+A", segment_well_known_addr)
+            };
+
+            format!(
+                "{}\n{}",
+                [&format!("@{}", argument), "D=A", &get_base_address, "D=M",].join("\n"),
+                self._push().join("\n")
+            )
+        }
+    }
+
+    pub fn write_pop(&self, segment: &MemorySegment, argument: u16) -> String {
+        let segment_well_known_addr = self._get_segment_well_known_addr(segment);
+        let is_pointer = self._is_pointer_segment(segment);
+
+        let get_base_address = if is_pointer {
+            // chase pointer
+            format!("{}\nA=M\nA=D+A", segment_well_known_addr)
+        } else {
+            format!("{}\nA=D+A", segment_well_known_addr)
+        };
+
+        format!(
+            "{}\n{}",
+            [
+                // calculate base address
+                &format!("@{}", argument),
+                "D=A",
+                &get_base_address,
+                "D=M",
             ]
             .join("\n"),
-        }
+            self._pop().join("\n"), // pop stack into D+A
+        )
     }
 
     fn _write_comparison(&mut self, jump_condition: &str) -> String {
@@ -100,6 +145,50 @@ impl CodeWriter {
             ]
             .join("\n")
         )
+    }
+
+    /// Map each segment to its 'well-known' address -- which may contain a pointer to its base
+    fn _get_segment_well_known_addr(&self, segment: &MemorySegment) -> String {
+        match segment {
+            MemorySegment::Local => "@LCL",
+            MemorySegment::Argument => "@ARG",
+            MemorySegment::This => "@THIS",
+            MemorySegment::That => "@THAT",
+            MemorySegment::Temp => "@5",
+            _ => panic!("Invalid segment for address calculation"),
+        }
+        .to_string()
+    }
+
+    fn _is_pointer_segment(&self, segment: &MemorySegment) -> bool {
+        matches!(
+            segment,
+            MemorySegment::Local
+                | MemorySegment::Argument
+                | MemorySegment::This
+                | MemorySegment::That
+        )
+    }
+
+    /// Pushes D onto the top of the stack
+    fn _push(&self) -> [&str; 5] {
+        [
+            "@SP",   // point to the stack pointer
+            "A=M",   // load the stack pointer into A
+            "M=D",   // write the value onto the stack
+            "@SP",   // increment the stack pointer
+            "M=M+1", //
+        ]
+    }
+
+    /// Pops top of stack into D+A, via R13
+    fn _pop(&self) -> [&str; 9] {
+        [
+            // store D+A in general-purpose register
+            "D=D+A", "@R13", "M=D", // pop stack into D and decrement
+            "@SP", "AM=M-1", "D=M", // store D into *R13
+            "@R13", "A=M", "M=D",
+        ]
     }
 
     /// Loads top of the stack into D and points A at next stack element
