@@ -18,16 +18,23 @@ fn test_stack_test() {
 }
 
 #[test]
-fn test_basic_test() {
+fn test_memory_basic() {
     assert!(run_cpu_emulator_test(
         &(get_base_test_dir() + "/MemoryAccess/BasicTest")
     ));
 }
 
 #[test]
-fn test_pointer_test() {
+fn test_memory_pointer() {
     assert!(run_cpu_emulator_test(
         &(get_base_test_dir() + "/MemoryAccess/PointerTest")
+    ));
+}
+
+#[test]
+fn test_memory_static() {
+    assert!(run_cpu_emulator_test(
+        &(get_base_test_dir() + "/MemoryAccess/StaticTest")
     ));
 }
 

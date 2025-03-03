@@ -95,6 +95,7 @@ fn _parse(tokens: Vec<&str>) -> Result<Command, String> {
                 "that" => parse_push_command(MemorySegment::That, tokens[2], max_addr),
                 "temp" => parse_push_command(MemorySegment::Temp, tokens[2], 7),
                 "pointer" => parse_push_command(MemorySegment::Pointer, tokens[2], 1),
+                "static" => parse_push_command(MemorySegment::Static, tokens[2], 240),
                 _ => Err(format!("unknown segment for push: {}", tokens[1])),
             }
         }
@@ -113,6 +114,7 @@ fn _parse(tokens: Vec<&str>) -> Result<Command, String> {
                 "that" => parse_pop_command(MemorySegment::That, tokens[2], max_addr),
                 "temp" => parse_pop_command(MemorySegment::Temp, tokens[2], 8),
                 "pointer" => parse_pop_command(MemorySegment::Pointer, tokens[2], 1),
+                "static" => parse_pop_command(MemorySegment::Static, tokens[2], 240),
                 _ => Err(format!("unknown segment for pop: {}", tokens[1])),
             }
         }

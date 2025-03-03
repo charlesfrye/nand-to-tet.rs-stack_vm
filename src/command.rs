@@ -9,6 +9,7 @@ pub enum MemorySegment {
     That,
     Temp,
     Pointer,
+    Static,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -37,6 +38,7 @@ impl fmt::Display for MemorySegment {
             MemorySegment::That => write!(f, "that"),
             MemorySegment::Temp => write!(f, "temp"),
             MemorySegment::Pointer => write!(f, "pointer"),
+            MemorySegment::Static => write!(f, "static"),
         }
     }
 }
@@ -44,6 +46,7 @@ impl fmt::Display for MemorySegment {
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Command::Placeholder => write!(f, "// not implemented yet"),
             Command::Add => write!(f, "add"),
             Command::Sub => write!(f, "sub"),
             Command::Neg => write!(f, "neg"),
@@ -55,7 +58,6 @@ impl fmt::Display for Command {
             Command::Not => write!(f, "not"),
             Command::Push(segment, address) => write!(f, "push {} {}", segment, address),
             Command::Pop(segment, address) => write!(f, "pop {} {}", segment, address),
-            _ => write!(f, "// not implemented yet"),
         }
     }
 }

@@ -5,8 +5,9 @@ pub fn translate(inputs: Vec<(String, String)>) -> String {
     let mut result = String::new();
     let mut codewriter = CodeWriter::new();
 
-    for (_filename, content) in inputs {
+    for (filename, content) in inputs {
         let parser = Parser::new(&content);
+        codewriter.set_namespace(filename[0..filename.len() - 3].to_string());
 
         for line in parser {
             let command = line.expect("Failed to parse command");

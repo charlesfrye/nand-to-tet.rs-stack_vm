@@ -3,11 +3,19 @@ use crate::command::{Command, MemorySegment};
 #[derive(Debug, Default)]
 pub struct CodeWriter {
     label_counter: usize,
+    namespace: String,
 }
 
 impl CodeWriter {
     pub fn new() -> Self {
-        CodeWriter { label_counter: 1 }
+        CodeWriter {
+            label_counter: 1,
+            namespace: "STATIC".to_string(),
+        }
+    }
+
+    pub fn set_namespace(&mut self, ns: String) {
+        self.namespace = ns;
     }
 
     pub fn write(&mut self, command: &Command) -> String {
@@ -78,48 +86,57 @@ impl CodeWriter {
                 .join("\n"),
                 self._push().join("\n"), // push D
             )
+        } else if *segment == MemorySegment::Static {
+            format!(
+                "@{}.{}\nD=M\n{}",
+                self.namespace,
+                argument,
+                self._push().join("\n")
+            )
         } else {
-            let segment_well_known_addr = self._get_segment_well_known_addr(segment);
-            let is_pointer = self._is_pointed_segment(segment);
-
-            let get_base_address = if is_pointer {
-                // chase pointer
-                format!("{}\nA=M\nA=D+A", segment_well_known_addr)
-            } else {
-                format!("{}\nA=D+A", segment_well_known_addr)
-            };
-
             format!(
                 "{}\n{}",
-                [&format!("@{}", argument), "D=A", &get_base_address, "D=M",].join("\n"),
+                [
+                    // load the base address into D
+                    &self._get_base_address(segment),
+                    "D=A",
+                    // load the index into A
+                    &format!("@{}", argument),
+                    // index into segment with A
+                    "A=D+A",
+                    // load value into D
+                    "D=M"
+                ]
+                .join("\n"),
                 self._push().join("\n")
             )
         }
     }
 
     pub fn write_pop(&self, segment: &MemorySegment, argument: u16) -> String {
-        let segment_well_known_addr = self._get_segment_well_known_addr(segment);
-        let is_pointer = self._is_pointed_segment(segment);
-
-        let get_base_address = if is_pointer {
-            // chase pointer
-            format!("{}\nA=M\nA=D+A", segment_well_known_addr)
+        if *segment == MemorySegment::Static {
+            format!(
+                "D=0\n@{}.{}\n{}",
+                self.namespace,
+                argument,
+                self._pop().join("\n")
+            )
         } else {
-            format!("{}\nA=D+A", segment_well_known_addr)
-        };
+            let get_base_address = self._get_base_address(segment);
 
-        format!(
-            "{}\n{}",
-            [
-                // calculate base address
-                &format!("@{}", argument),
-                "D=A",
-                &get_base_address,
-                "D=M",
-            ]
-            .join("\n"),
-            self._pop().join("\n"), // pop stack into D+A
-        )
+            format!(
+                "{}\n{}",
+                [
+                    // load the base address into D
+                    &get_base_address,
+                    "D=A",
+                    // load the index into A
+                    &format!("@{}", argument)
+                ]
+                .join("\n"),
+                self._pop().join("\n"), // pop stack into D+A
+            )
+        }
     }
 
     fn _write_comparison(&mut self, jump_condition: &str) -> String {
@@ -159,6 +176,19 @@ impl CodeWriter {
             _ => panic!("Invalid segment for address calculation"),
         }
         .to_string()
+    }
+
+    /// Loads the base address of a segment into A
+    fn _get_base_address(&self, segment: &MemorySegment) -> String {
+        let segment_well_known_addr = self._get_segment_well_known_addr(segment);
+        let is_pointer = self._is_pointed_segment(segment);
+
+        if is_pointer {
+            // chase pointer
+            format!("{}\nA=M\n", segment_well_known_addr)
+        } else {
+            segment_well_known_addr
+        }
     }
 
     fn _is_pointed_segment(&self, segment: &MemorySegment) -> bool {
