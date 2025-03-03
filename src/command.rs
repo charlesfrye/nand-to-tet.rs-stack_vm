@@ -26,6 +26,9 @@ pub enum Command {
     Not,
     Push(MemorySegment, u16),
     Pop(MemorySegment, u16),
+    Label(String),
+    Goto(String),
+    IfGoto(String),
 }
 
 impl fmt::Display for MemorySegment {
@@ -58,6 +61,9 @@ impl fmt::Display for Command {
             Command::Not => write!(f, "not"),
             Command::Push(segment, address) => write!(f, "push {} {}", segment, address),
             Command::Pop(segment, address) => write!(f, "pop {} {}", segment, address),
+            Command::Label(value) => write!(f, "label {}", value),
+            Command::Goto(value) => write!(f, "goto {}", value),
+            Command::IfGoto(value) => write!(f, "if-goto {}", value),
         }
     }
 }

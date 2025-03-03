@@ -38,6 +38,13 @@ fn test_memory_static() {
     ));
 }
 
+#[test]
+fn test_flow_basic() {
+    assert!(run_cpu_emulator_test(
+        &(get_base_test_dir() + "/ProgramFlow/BasicLoop")
+    ));
+}
+
 fn run_cpu_emulator_test(test_dir: &str) -> bool {
     let dir_path = Path::new(test_dir);
 

@@ -33,6 +33,9 @@ impl CodeWriter {
             Command::Not => self.write_not(),
             Command::Push(segment, address) => self.write_push(segment, *address),
             Command::Pop(segment, address) => self.write_pop(segment, *address),
+            Command::Label(value) => self.write_label(value),
+            Command::Goto(value) => self.write_goto(value),
+            Command::IfGoto(value) => self.write_ifgoto(value),
             _ => "// Not implemented yet".to_string(),
         };
 
@@ -139,6 +142,28 @@ impl CodeWriter {
         }
     }
 
+    pub fn write_label(&self, label: &str) -> String {
+        format!("({}.{})", self.namespace, label)
+    }
+
+    pub fn write_goto(&self, label: &str) -> String {
+        format!("@{}.{}\n0;JMP", self.namespace, label)
+    }
+
+    pub fn write_ifgoto(&self, label: &str) -> String {
+        [
+            // pop the stack into D
+            "@SP",
+            "AM=M-1",
+            "D=M",
+            // load the label into A
+            &format!("@{}.{}", self.namespace, label),
+            // jump there if D != 0
+            "D;JNE",
+        ]
+        .join("\n")
+    }
+
     fn _write_comparison(&mut self, jump_condition: &str) -> String {
         let label_id = self._next_label_id();
         let true_label = format!("TRUE.{}", label_id);
@@ -185,7 +210,7 @@ impl CodeWriter {
 
         if is_pointer {
             // chase pointer
-            format!("{}\nA=M\n", segment_well_known_addr)
+            format!("{}\nA=M", segment_well_known_addr)
         } else {
             segment_well_known_addr
         }

@@ -118,6 +118,33 @@ fn _parse(tokens: Vec<&str>) -> Result<Command, String> {
                 _ => Err(format!("unknown segment for pop: {}", tokens[1])),
             }
         }
+        "label" => {
+            if tokens.len() < 2 {
+                return Err(format!(
+                    "Not enough arguments for label: {}",
+                    tokens.join(" ")
+                ));
+            }
+            Ok(Command::Label(tokens[1].to_string()))
+        }
+        "goto" => {
+            if tokens.len() < 2 {
+                return Err(format!(
+                    "Not enough arguments for goto: {}",
+                    tokens.join(" ")
+                ));
+            }
+            Ok(Command::Goto(tokens[1].to_string()))
+        }
+        "if-goto" => {
+            if tokens.len() < 2 {
+                return Err(format!(
+                    "Not enough arguments for goto: {}",
+                    tokens.join(" ")
+                ));
+            }
+            Ok(Command::IfGoto(tokens[1].to_string()))
+        }
         _ => Err(format!("couldn't parse {}", tokens.join(" "))),
     }
 }
