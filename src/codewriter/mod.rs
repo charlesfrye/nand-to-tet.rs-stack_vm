@@ -18,6 +18,20 @@ impl CodeWriter {
         self.namespace = ns;
     }
 
+    pub fn write_bootstrap(&self) -> String {
+        [
+            // initialize stack pointer
+            "@256",
+            "D=A",
+            "@SP",
+            "M=D",
+            // start executing entrypoint
+            "@sys.init",
+            "0;JMP",
+        ]
+        .join("\n")
+    }
+
     pub fn write(&mut self, command: &Command) -> String {
         let debug_comment = format!("// {}", command);
 
@@ -167,16 +181,17 @@ impl CodeWriter {
         .join("\n")
     }
 
-    pub fn write_function(&self, name: &str, nargs: u16) -> String {
+    pub fn write_function(&self, name: &str, nlocals: u16) -> String {
         format!(
             "({}){}",
             name,
-            format!("\nD=0\n{}", self._push().join("\n")).repeat(nargs as usize)
+            format!("\nD=0\n{}", self._push().join("\n")).repeat(nlocals as usize)
         )
     }
 
-    pub fn write_call(&self, name: &str, nargs: u16) -> String {
-        let call_label = format!("{}.{}", name, self.label_counter - 1);
+    pub fn write_call(&mut self, name: &str, nargs: u16) -> String {
+        self.label_counter += 1;
+        let call_label = format!("RETURN_{}.{}", name, self.label_counter - 1);
         [
             // push return-address
             &format!("@{}\nD=A", call_label),
@@ -188,17 +203,18 @@ impl CodeWriter {
             &self._push_segment("THAT"),
             // reposition ARG
             &format!("@{}", nargs + 5),
+            "D=A",
             "@SP",
-            "D=A-D",
+            "D=M-D",
             "@ARG",
             "M=D",
             // reposition LCL
             "@SP",
-            "D=A",
+            "D=M",
             "@LCL",
             "M=D",
             // transfer control
-            &self.write_goto(name),
+            &format!("@{}\n0;JMP", name),
             // provide return address
             &format!("({})", call_label),
         ]
@@ -212,13 +228,19 @@ impl CodeWriter {
             "D=M",
             "@R14",
             "M=D",
+            // store return address in another register
+            "@5",
+            "A=D-A",
+            "D=M",
+            "@R15",
+            "M=D",
             // pop return value into position (same as base of argument segment)
             "@SP",
             "AM=M-1",
-            "D=M",
+            "D=M", // D set to return value
             "@ARG",
             "A=M",
-            "M=D",
+            "M=D", // ARG[0] = D
             // restore SP -- just above return value
             "D=A+1",
             "@SP",
@@ -229,8 +251,8 @@ impl CodeWriter {
             &self._restore_segment("ARG", 3),
             &self._restore_segment("LCL", 4),
             // relinquish control
-            "@SP",
-            "A=M",
+            "@R15",
+            "D=M",
             "0;JMP",
         ]
         .join("\n")
@@ -247,11 +269,15 @@ impl CodeWriter {
 
     pub fn _restore_segment(&self, segment_pointer: &str, frame_offset: u16) -> String {
         [
+            // load frame top into D
             "@R14",
             "D=M",
+            // subtract offset
             &format!("@{}", frame_offset),
             "A=D-A",
+            // load contents
             "D=M",
+            // restore into segment pointer
             &format!("@{}", segment_pointer),
             "M=D",
         ]

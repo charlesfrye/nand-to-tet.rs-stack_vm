@@ -139,13 +139,28 @@ fn _parse(tokens: Vec<&str>) -> Result<Command, String> {
         "if-goto" => {
             if tokens.len() < 2 {
                 return Err(format!(
-                    "Not enough arguments for goto: {}",
+                    "Not enough arguments for if-goto: {}",
                     tokens.join(" ")
                 ));
             }
             Ok(Command::IfGoto(tokens[1].to_string()))
         }
         "function" => {
+            if tokens.len() < 3 {
+                return Err(format!(
+                    "Not enough arguments for function def: {}",
+                    tokens.join(" ")
+                ));
+            }
+            let name = tokens[1].to_string();
+            let nargs_token = tokens[2];
+            match nargs_token.parse() {
+                Ok(nargs) if nargs <= ((2 << 14) - 1) => Ok(Command::Function(name, nargs)),
+                Ok(value) => Err(format!("nargs exceeds maximum allowed: {}", value)),
+                Err(_) => Err(format!("couldn't parse nargs: {}", nargs_token)),
+            }
+        }
+        "call" => {
             if tokens.len() < 3 {
                 return Err(format!(
                     "Not enough arguments for function call: {}",
@@ -155,7 +170,7 @@ fn _parse(tokens: Vec<&str>) -> Result<Command, String> {
             let name = tokens[1].to_string();
             let nargs_token = tokens[2];
             match nargs_token.parse() {
-                Ok(nargs) if nargs <= ((2 << 14) - 1) => Ok(Command::Function(name, nargs)),
+                Ok(nargs) if nargs <= ((2 << 14) - 1) => Ok(Command::Call(name, nargs)),
                 Ok(value) => Err(format!("nargs exceeds maximum allowed: {}", value)),
                 Err(_) => Err(format!("couldn't parse nargs: {}", nargs_token)),
             }

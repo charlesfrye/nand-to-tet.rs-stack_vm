@@ -6,60 +6,68 @@ use std::process::Command;
 #[test]
 fn test_simple_add() {
     assert!(run_cpu_emulator_test(
-        &(get_base_test_dir() + "/StackArithmetic/SimpleAdd")
+        &(get_base_test_dir() + "/StackArithmetic/SimpleAdd"),
+        false,
     ));
 }
 
 #[test]
 fn test_stack_test() {
     assert!(run_cpu_emulator_test(
-        &(get_base_test_dir() + "/StackArithmetic/StackTest")
+        &(get_base_test_dir() + "/StackArithmetic/StackTest"),
+        false,
     ));
 }
 
 #[test]
 fn test_memory_basic() {
     assert!(run_cpu_emulator_test(
-        &(get_base_test_dir() + "/MemoryAccess/BasicTest")
+        &(get_base_test_dir() + "/MemoryAccess/BasicTest"),
+        false,
     ));
 }
 
 #[test]
 fn test_memory_pointer() {
     assert!(run_cpu_emulator_test(
-        &(get_base_test_dir() + "/MemoryAccess/PointerTest")
+        &(get_base_test_dir() + "/MemoryAccess/PointerTest"),
+        false,
     ));
 }
 
 #[test]
 fn test_memory_static() {
     assert!(run_cpu_emulator_test(
-        &(get_base_test_dir() + "/MemoryAccess/StaticTest")
+        &(get_base_test_dir() + "/MemoryAccess/StaticTest"),
+        false,
     ));
 }
 
 #[test]
 fn test_flow_basic() {
     assert!(run_cpu_emulator_test(
-        &(get_base_test_dir() + "/ProgramFlow/BasicLoop")
+        &(get_base_test_dir() + "/ProgramFlow/BasicLoop"),
+        false,
     ));
 }
 
 #[test]
 fn test_flow_fibonacci() {
     assert!(run_cpu_emulator_test(
-        &(get_base_test_dir() + "/ProgramFlow/FibonacciSeries")
+        &(get_base_test_dir() + "/ProgramFlow/FibonacciSeries"),
+        false,
     ));
 }
 
 #[test]
-fn test_function_simple() {
+fn test_function_fibonacci() {
     assert!(run_cpu_emulator_test(
-        &(get_base_test_dir() + "/FunctionCalls/SimpleFunction")
+        &(get_base_test_dir() + "/FunctionCalls/FibonacciElement"),
+        true,
     ));
 }
 
-fn run_cpu_emulator_test(test_dir: &str) -> bool {
+fn run_cpu_emulator_test(test_dir: &str, do_bootstrap: bool) -> bool {
     let dir_path = Path::new(test_dir);
 
     let vm_files = gather_vm_files(dir_path);
@@ -76,7 +84,7 @@ fn run_cpu_emulator_test(test_dir: &str) -> bool {
 
     let asm_output = PathBuf::from(test_dir).join(format!("{}.asm", test_name));
 
-    let translated_code = translator::translate(vm_files);
+    let translated_code = translator::translate(vm_files, do_bootstrap);
     fs::write(&asm_output, translated_code).expect("Failed to write assembly output");
 
     let test_script = PathBuf::from(test_dir).join(format!("{}.tst", test_name));

@@ -11,7 +11,7 @@ fn main() {
 
     let mut output_file = File::create(&output_filename).expect("Failed to create output file");
 
-    let translated_code = translator::translate(input_files);
+    let translated_code = translator::translate(input_files, true);
 
     writeln!(output_file, "{}", translated_code).expect("Failed to write to output file");
 
