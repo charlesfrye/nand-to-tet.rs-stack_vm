@@ -29,6 +29,9 @@ pub enum Command {
     Label(String),
     Goto(String),
     IfGoto(String),
+    Function(String, u16),
+    Call(String, u16),
+    Return,
 }
 
 impl fmt::Display for MemorySegment {
@@ -64,6 +67,9 @@ impl fmt::Display for Command {
             Command::Label(value) => write!(f, "label {}", value),
             Command::Goto(value) => write!(f, "goto {}", value),
             Command::IfGoto(value) => write!(f, "if-goto {}", value),
+            Command::Function(name, nargs) => write!(f, "function {} {}", name, nargs),
+            Command::Call(name, nargs) => write!(f, "call {} {}", name, nargs),
+            Command::Return => write!(f, "return"),
         }
     }
 }

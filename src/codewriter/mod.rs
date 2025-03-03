@@ -36,6 +36,9 @@ impl CodeWriter {
             Command::Label(value) => self.write_label(value),
             Command::Goto(value) => self.write_goto(value),
             Command::IfGoto(value) => self.write_ifgoto(value),
+            Command::Function(name, nargs) => self.write_function(name, *nargs),
+            Command::Call(name, nargs) => self.write_call(name, *nargs),
+            Command::Return => self.write_return(),
             _ => "// Not implemented yet".to_string(),
         };
 
@@ -160,6 +163,97 @@ impl CodeWriter {
             &format!("@{}.{}", self.namespace, label),
             // jump there if D != 0
             "D;JNE",
+        ]
+        .join("\n")
+    }
+
+    pub fn write_function(&self, name: &str, nargs: u16) -> String {
+        format!(
+            "({}){}",
+            name,
+            format!("\nD=0\n{}", self._push().join("\n")).repeat(nargs as usize)
+        )
+    }
+
+    pub fn write_call(&self, name: &str, nargs: u16) -> String {
+        let call_label = format!("{}.{}", name, self.label_counter - 1);
+        [
+            // push return-address
+            &format!("@{}\nD=A", call_label),
+            &self._push().join("\n"),
+            // store LCL, ARG, THIS, and THAT on stack
+            &self._push_segment("LCL"),
+            &self._push_segment("ARG"),
+            &self._push_segment("THIS"),
+            &self._push_segment("THAT"),
+            // reposition ARG
+            &format!("@{}", nargs + 5),
+            "@SP",
+            "D=A-D",
+            "@ARG",
+            "M=D",
+            // reposition LCL
+            "@SP",
+            "D=A",
+            "@LCL",
+            "M=D",
+            // transfer control
+            &self.write_goto(name),
+            // provide return address
+            &format!("({})", call_label),
+        ]
+        .join("\n")
+    }
+
+    pub fn write_return(&self) -> String {
+        [
+            // stash stack frame pointer in a general-purpose register
+            "@LCL",
+            "D=M",
+            "@R14",
+            "M=D",
+            // pop return value into position (same as base of argument segment)
+            "@SP",
+            "AM=M-1",
+            "D=M",
+            "@ARG",
+            "A=M",
+            "M=D",
+            // restore SP -- just above return value
+            "D=A+1",
+            "@SP",
+            "M=D",
+            // restore THAT, THIS, ARG, LCL
+            &self._restore_segment("THAT", 1),
+            &self._restore_segment("THIS", 2),
+            &self._restore_segment("ARG", 3),
+            &self._restore_segment("LCL", 4),
+            // relinquish control
+            "@SP",
+            "A=M",
+            "0;JMP",
+        ]
+        .join("\n")
+    }
+
+    pub fn _push_segment(&self, segment_pointer: &str) -> String {
+        [
+            &format!("@{}", segment_pointer),
+            "D=M",
+            &self._push().join("\n"),
+        ]
+        .join("\n")
+    }
+
+    pub fn _restore_segment(&self, segment_pointer: &str, frame_offset: u16) -> String {
+        [
+            "@R14",
+            "D=M",
+            &format!("@{}", frame_offset),
+            "A=D-A",
+            "D=M",
+            &format!("@{}", segment_pointer),
+            "M=D",
         ]
         .join("\n")
     }

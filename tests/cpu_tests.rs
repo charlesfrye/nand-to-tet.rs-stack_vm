@@ -52,6 +52,13 @@ fn test_flow_fibonacci() {
     ));
 }
 
+#[test]
+fn test_function_simple() {
+    assert!(run_cpu_emulator_test(
+        &(get_base_test_dir() + "/FunctionCalls/SimpleFunction")
+    ));
+}
+
 fn run_cpu_emulator_test(test_dir: &str) -> bool {
     let dir_path = Path::new(test_dir);
 
