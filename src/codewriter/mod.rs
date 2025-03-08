@@ -1,24 +1,45 @@
 use crate::command::{Command, MemorySegment};
+use std::fmt;
 
 #[derive(Debug, Default)]
 pub struct CodeWriter {
     label_counter: usize,
-    namespace: String,
+    context: Context,
+}
+
+#[derive(Debug, Default)]
+struct Context {
+    file: String,
+    function: String,
+}
+
+impl fmt::Display for Context {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.function.is_empty() {
+            write!(f, "{}", self.file)
+        } else {
+            write!(f, "{}", self.function)
+        }
+    }
 }
 
 impl CodeWriter {
     pub fn new() -> Self {
         CodeWriter {
             label_counter: 1,
-            namespace: "STATIC".to_string(),
+            context: Context::default(),
         }
     }
 
-    pub fn set_namespace(&mut self, ns: String) {
-        self.namespace = ns;
+    pub fn set_file_context(&mut self, filename: String) {
+        self.context.file = filename;
     }
 
-    pub fn write_bootstrap(&self) -> String {
+    fn _set_function_context(&mut self, name: String) {
+        self.context.function = name;
+    }
+
+    pub fn write_bootstrap(&mut self) -> String {
         [
             // initialize stack pointer
             "@256",
@@ -26,8 +47,7 @@ impl CodeWriter {
             "@SP",
             "M=D",
             // start executing entrypoint
-            "@sys.init",
-            "0;JMP",
+            &self.write_call("Sys.init", 0),
         ]
         .join("\n")
     }
@@ -109,7 +129,7 @@ impl CodeWriter {
         } else if *segment == MemorySegment::Static {
             format!(
                 "@{}.{}\nD=M\n{}",
-                self.namespace,
+                self.context.file,
                 argument,
                 self._push().join("\n")
             )
@@ -137,7 +157,7 @@ impl CodeWriter {
         if *segment == MemorySegment::Static {
             format!(
                 "D=0\n@{}.{}\n{}",
-                self.namespace,
+                self.context.file,
                 argument,
                 self._pop().join("\n")
             )
@@ -160,11 +180,11 @@ impl CodeWriter {
     }
 
     pub fn write_label(&self, label: &str) -> String {
-        format!("({}.{})", self.namespace, label)
+        format!("({}${})", self.context, label)
     }
 
     pub fn write_goto(&self, label: &str) -> String {
-        format!("@{}.{}\n0;JMP", self.namespace, label)
+        format!("@{}${}\n0;JMP", self.context, label)
     }
 
     pub fn write_ifgoto(&self, label: &str) -> String {
@@ -174,24 +194,24 @@ impl CodeWriter {
             "AM=M-1",
             "D=M",
             // load the label into A
-            &format!("@{}.{}", self.namespace, label),
+            &format!("@{}${}", self.context, label),
             // jump there if D != 0
             "D;JNE",
         ]
         .join("\n")
     }
 
-    pub fn write_function(&self, name: &str, nlocals: u16) -> String {
+    pub fn write_function(&mut self, name: &str, nlocals: u16) -> String {
+        self._set_function_context(name.to_string());
         format!(
             "({}){}",
-            name,
+            self.context,
             format!("\nD=0\n{}", self._push().join("\n")).repeat(nlocals as usize)
         )
     }
 
     pub fn write_call(&mut self, name: &str, nargs: u16) -> String {
-        self.label_counter += 1;
-        let call_label = format!("RETURN_{}.{}", name, self.label_counter - 1);
+        let call_label = format!("__RET_{}", self._next_label_id());
         [
             // push return-address
             &format!("@{}\nD=A", call_label),
@@ -221,7 +241,8 @@ impl CodeWriter {
         .join("\n")
     }
 
-    pub fn write_return(&self) -> String {
+    pub fn write_return(&mut self) -> String {
+        self._set_function_context("".to_string());
         [
             // stash stack frame pointer in a general-purpose register
             "@LCL",
@@ -252,7 +273,7 @@ impl CodeWriter {
             &self._restore_segment("LCL", 4),
             // relinquish control
             "@R15",
-            "D=M",
+            "A=M",
             "0;JMP",
         ]
         .join("\n")

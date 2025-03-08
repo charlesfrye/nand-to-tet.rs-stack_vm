@@ -4,8 +4,8 @@
 // Calls Sys.main() and stores a return value in temp 1.
 // Does not return (enters infinite loop).
 // The VM implementation starts running the Sys.init function, by default.
-function Sys.init 0
-	push constant 4000	// tests that THIS and THAT are handled correctly
+function Sys.init 0 // tests that THIS and THAT are handled correctly
+	push constant 4000
 	pop pointer 0
 	push constant 5000
 	pop pointer 1
@@ -14,11 +14,11 @@ function Sys.init 0
 	label LOOP
 	goto LOOP
 
-// Sets locals 1, 2 and 3 to some values. Leaves locals 0 and 4 unchanged, 
-// to test that the 'function' VM command initliazes them to 0 (the test 
+// Sets locals 1, 2 and 3 to some values. Leaves locals 0 and 4 unchanged,
+// to test that the 'function' VM command initliazes them to 0 (the test
 // script sets them to -1 before this code starts running).
 // Calls Sys.add12(123) and stores the return value (should be 135) in temp 0.
-// Returns local 0 + local 1 + local 2 + local 3 + local 4 (should be 456), to 
+// Returns local 0 + local 1 + local 2 + local 3 + local 4 (should be 246), to
 // confirm that locals were not mangled by the function call.
 function Sys.main 5
 	push constant 4001

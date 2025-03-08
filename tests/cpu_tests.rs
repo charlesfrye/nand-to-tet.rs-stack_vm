@@ -60,6 +60,14 @@ fn test_flow_fibonacci() {
 }
 
 #[test]
+fn test_function_nested() {
+    assert!(run_cpu_emulator_test(
+        &(get_base_test_dir() + "/FunctionCalls/NestedCall"),
+        true,
+    ));
+}
+
+#[test]
 fn test_function_fibonacci() {
     assert!(run_cpu_emulator_test(
         &(get_base_test_dir() + "/FunctionCalls/FibonacciElement"),

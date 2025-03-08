@@ -15,7 +15,7 @@ impl<'a> Parser<'a> {
 
     /// Removes comments and whitespace
     fn clean(&mut self, line: &str) -> String {
-        let trimmed = line.trim().to_lowercase();
+        let trimmed = line.trim();
 
         if self.in_multiline_comment {
             // either reach the end or return empty string
