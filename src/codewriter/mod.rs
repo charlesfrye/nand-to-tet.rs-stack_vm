@@ -242,7 +242,6 @@ impl CodeWriter {
     }
 
     pub fn write_return(&mut self) -> String {
-        self._set_function_context("".to_string());
         [
             // stash stack frame pointer in a general-purpose register
             "@LCL",
