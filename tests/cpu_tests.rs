@@ -75,6 +75,14 @@ fn test_function_fibonacci() {
     ));
 }
 
+#[test]
+fn test_function_statics() {
+    assert!(run_cpu_emulator_test(
+        &(get_base_test_dir() + "/FunctionCalls/StaticsTest"),
+        true,
+    ));
+}
+
 fn run_cpu_emulator_test(test_dir: &str, do_bootstrap: bool) -> bool {
     let dir_path = Path::new(test_dir);
 
